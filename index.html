@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mines Pro Signal - Mobile</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap');
+        
+        body {
+            background: radial-gradient(circle at center, #0a0e1f 0%, #050815 100%);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+            font-family: 'Rajdhani', sans-serif;
+            padding: 10px;
+        }
+        
+        /* Neon glow effects */
+        .neon-glow {
+            position: fixed;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle, rgba(93,124,255,0.15) 0%, rgba(93,124,255,0) 70%);
+            z-index: -2;
+            animation: rotateGlow 60s linear infinite;
+        }
+        
+        @keyframes rotateGlow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .game-container {
+            width: 100%;
+            max-width: 100%;
+            background: rgba(10, 15, 35, 0.95);
+            border-radius: 20px;
+            padding: 20px 15px;
+            box-shadow: 
+                0 0 30px rgba(93, 124, 255, 0.3),
+                0 15px 40px rgba(0, 0, 0, 0.7),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(100, 120, 220, 0.4);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+        
+        .game-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #FF3A3A, #FBBC05, #34A853, #4285F4);
+            z-index: 11;
+        }
+        
+        /* Header section */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #8a9eff, #5d7cff, #9d8aff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 12px rgba(93, 124, 255, 0.5);
+            position: relative;
+            letter-spacing: 0.5px;
+        }
+        
+        .title::after {
+            content: "PRO";
+            position: absolute;
+            top: -8px;
+            right: -35px;
+            font-size: 0.8rem;
+            background: linear-gradient(45deg, #ff7e5f, #feb47b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+        }
+        
+        .timer {
+            background: rgba(26, 115, 232, 0.2);
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 1rem;
+            color: #5d7cff;
+            font-weight: 600;
+            box-shadow: 0 0 12px rgba(93, 124, 255, 0.3);
+            border: 1px solid rgba(93, 124, 255, 0.3);
+        }
+        
+        /* Bomb selector - now vertical for mobile */
+        .bombs-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .bomb-option {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            position: relative;
+            text-align: center;
+            box-shadow: 
+                inset 0 1px 2px rgba(0, 0, 0, 0.5),
+                0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .bomb-option.active {
+            background: linear-gradient(135deg, rgba(66, 133, 244, 0.3), transparent);
+            color: white;
+            text-shadow: 0 0 10px rgba(93, 124, 255, 0.7);
+            box-shadow: 
+                0 0 0 2px rgba(93, 124, 255, 0.5),
+                0 6px 20px rgba(66, 133, 244, 0.3);
+        }
+        
+        /* Grid area - optimized for mobile */
+        .grid-container {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+        
+        .cell {
+            aspect-ratio: 1;
+            background: linear-gradient(145deg, #1a2248, #141b3d);
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.8rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                inset 0 -6px 12px rgba(0, 0, 0, 0.4),
+                0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .cell.revealed {
+            background: linear-gradient(145deg, #0f142f, #090c23);
+            box-shadow: 
+                inset 0 0 8px rgba(0, 0, 0, 0.8),
+                0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .cell.mine {
+            background: linear-gradient(145deg, #c62828, #b71c1c);
+            box-shadow: 
+                0 0 20px rgba(255, 50, 50, 0.6),
+                inset 0 0 10px rgba(0, 0, 0, 0.5);
+            animation: explode 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        
+        .cell.safe {
+            background: linear-gradient(145deg, #1b5e20, #0d3b13);
+            box-shadow: 
+                0 0 20px rgba(50, 255, 100, 0.4),
+                inset 0 0 10px rgba(0, 0, 0, 0.4);
+            animation: pulse 0.6s ease-out forwards;
+        }
+        
+        /* Buttons - larger for mobile */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .signal-button, .restart-button {
+            border: none;
+            border-radius: 18px;
+            padding: 18px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            min-height: 60px;
+        }
+        
+        .signal-button {
+            background: linear-gradient(135deg, #5d7cff, #4285F4);
+            box-shadow: 
+                0 8px 20px rgba(66, 133, 244, 0.4),
+                0 0 0 2px rgba(255, 255, 255, 0.1);
+        }
+        
+        .signal-button:active {
+            transform: translateY(2px);
+            box-shadow: 
+                0 4px 12px rgba(66, 133, 244, 0.3),
+                0 0 0 2px rgba(255, 255, 255, 0.1);
+        }
+        
+        .signal-button:disabled {
+            background: linear-gradient(135deg, #4a5ca8, #3a4a8c);
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        
+        .restart-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .restart-button:active {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(2px);
+        }
+        
+        .game-id {
+            text-align: center;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 20px;
+            letter-spacing: 1px;
+        }
+        
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(0.95); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes explode {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+        
+        .signal-active {
+            animation: signalGlow 2s infinite alternate;
+        }
+        
+        @keyframes signalGlow {
+            0% { box-shadow: 0 0 0 0 rgba(93, 124, 255, 0.7), 0 8px 20px rgba(66, 133, 244, 0.4); }
+            100% { box-shadow: 0 0 0 8px rgba(93, 124, 255, 0), 0 12px 25px rgba(66, 133, 244, 0.6); }
+        }
+        
+        /* Mobile-specific optimizations */
+        @media (max-width: 480px) {
+            .game-container {
+                padding: 15px 12px;
+                border-radius: 18px;
+            }
+            
+            .header {
+                margin-bottom: 15px;
+                padding-bottom: 12px;
+            }
+            
+            .title {
+                font-size: 1.5rem;
+            }
+            
+            .title::after {
+                top: -6px;
+                right: -30px;
+                font-size: 0.7rem;
+            }
+            
+            .timer {
+                padding: 6px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .bomb-option {
+                padding: 12px;
+                font-size: 1rem;
+            }
+            
+            .cell {
+                font-size: 1.5rem;
+            }
+            
+            .signal-button, .restart-button {
+                padding: 16px;
+                font-size: 1.2rem;
+                min-height: 55px;
+            }
+            
+            .grid {
+                gap: 6px;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .title {
+                font-size: 1.3rem;
+            }
+            
+            .timer {
+                padding: 5px 10px;
+                font-size: 0.8rem;
+            }
+            
+            .signal-button, .restart-button {
+                padding: 14px;
+                font-size: 1.1rem;
+            }
+            
+            .cell {
+                font-size: 1.3rem;
+            }
+        }
+        
+        /* Portrait vs landscape adjustments */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .game-container {
+                max-height: 90vh;
+                padding: 12px 10px;
+            }
+            
+            .grid {
+                gap: 5px;
+            }
+            
+            .bombs-selector {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            
+            .bomb-option {
+                flex: 1;
+                min-width: 30%;
+                padding: 10px 5px;
+            }
+            
+            .controls {
+                flex-direction: row;
+            }
+        }
+        
+        /* Holographic effects */
+        .holographic-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(255,255,255,0.02) 0px,
+                rgba(255,255,255,0.02) 1px,
+                transparent 1px,
+                transparent 4px
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* Status message */
+        .status-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px 30px;
+            border-radius: 15px;
+            font-size: 1.4rem;
+            text-align: center;
+            z-index: 20;
+            box-shadow: 0 0 30px rgba(93, 124, 255, 0.5);
+            border: 2px solid #5d7cff;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="neon-glow"></div>
+    <div class="holographic-effect"></div>
+    
+    <div class="game-container">
+        <div class="header">
+            <div class="title">MINES PRO SIGNAL</div>
+            <div class="timer" id="timer">00:00</div>
+        </div>
+        
+        <div class="bombs-selector">
+            <div class="bomb-option active" data-bombs="3">3 BOMBS</div>
+            <div class="bomb-option" data-bombs="5">5 BOMBS</div>
+            <div class="bomb-option" data-bombs="7">7 BOMBS</div>
+        </div>
+        
+        <div class="grid-container">
+            <div class="grid" id="grid"></div>
+        </div>
+        
+        <div class="controls">
+            <button class="signal-button signal-active" id="signalBtn">
+                <i class="fas fa-bolt"></i> ACTIVATE SIGNAL
+            </button>
+            <button class="restart-button" id="restartBtn">
+                <i class="fas fa-redo"></i> NEW GAME
+            </button>
+        </div>
+        
+        <div class="game-id">GAME ID: #<span id="gameId">1W52489</span></div>
+    </div>
+    
+    <div class="status-message" id="statusMessage">SIGNAL ACTIVATED!</div>
+
+    <script>
+        // Game configuration
+        const config = {
+            gridSize: 5,
+            bombsCount: 3,
+            gameId: "1W" + Math.floor(10000 + Math.random() * 90000)
+        };
+        
+        // Game state
+        let gameState = {
+            bombs: [],
+            revealed: [],
+            gameActive: true,
+            timer: 0,
+            timerInterval: null,
+            signalUsed: false
+        };
+        
+        // DOM elements
+        const elements = {
+            grid: document.getElementById('grid'),
+            timer: document.getElementById('timer'),
+            signalBtn: document.getElementById('signalBtn'),
+            restartBtn: document.getElementById('restartBtn'),
+            gameId: document.getElementById('gameId'),
+            statusMessage: document.getElementById('statusMessage')
+        };
+        
+        // Initialize game
+        function initGame() {
+            // Reset state
+            gameState.bombs = [];
+            gameState.revealed = [];
+            gameState.gameActive = true;
+            gameState.timer = 0;
+            gameState.signalUsed = false;
+            
+            // Update game ID
+            config.gameId = "1W" + Math.floor(10000 + Math.random() * 90000);
+            elements.gameId.textContent = config.gameId;
+            
+            // Start timer
+            startTimer();
+            
+            // Get selected bomb count
+            const activeOption = document.querySelector('.bomb-option.active');
+            config.bombsCount = parseInt(activeOption.dataset.bombs);
+            
+            // Generate bombs
+            while (gameState.bombs.length < config.bombsCount) {
+                const randomCell = Math.floor(Math.random() * config.gridSize * config.gridSize);
+                if (!gameState.bombs.includes(randomCell)) {
+                    gameState.bombs.push(randomCell);
+                }
+            }
+            
+            // Render grid
+            renderGrid();
+            
+            // Activate signal button
+            elements.signalBtn.disabled = false;
+            elements.signalBtn.classList.add('signal-active');
+            elements.signalBtn.innerHTML = '<i class="fas fa-bolt"></i> ACTIVATE SIGNAL';
+        }
+        
+        // Render grid
+        function renderGrid() {
+            elements.grid.innerHTML = '';
+            
+            for (let i = 0; i < config.gridSize * config.gridSize; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.index = i;
+                
+                // Block cell clicks
+                cell.style.pointerEvents = 'none';
+                
+                // If cell is already revealed
+                if (gameState.revealed.includes(i)) {
+                    cell.classList.add('revealed');
+                    
+                    if (gameState.bombs.includes(i)) {
+                        cell.classList.add('mine');
+                        cell.innerHTML = '💣';
+                    } else {
+                        cell.classList.add('safe');
+                        cell.innerHTML = '💎';
+                    }
+                }
+                
+                elements.grid.appendChild(cell);
+            }
+        }
+        
+        // Activate signal
+        function activateSignal() {
+            if (!gameState.gameActive || gameState.signalUsed) return;
+            
+            gameState.signalUsed = true;
+            gameState.gameActive = false;
+            
+            // Show status message
+            showStatus("SIGNAL ACTIVATED!");
+            
+            // Deactivate signal button
+            elements.signalBtn.disabled = true;
+            elements.signalBtn.classList.remove('signal-active');
+            elements.signalBtn.innerHTML = '<i class="fas fa-check"></i> SIGNAL USED';
+            
+            // Reveal all cells with animation
+            revealAllCellsWithAnimation();
+        }
+        
+        // Show status message
+        function showStatus(message) {
+            elements.statusMessage.textContent = message;
+            elements.statusMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                elements.statusMessage.style.display = 'none';
+            }, 2000);
+        }
+        
+        // Animate cell reveal
+        function revealAllCellsWithAnimation() {
+            const cells = document.querySelectorAll('.cell');
+            let delay = 0;
+            
+            cells.forEach((cell, index) => {
+                setTimeout(() => {
+                    const idx = parseInt(cell.dataset.index);
+                    
+                    // Mark cell as revealed
+                    if (!gameState.revealed.includes(idx)) {
+                        gameState.revealed.push(idx);
+                    }
+                    
+                    // Add classes based on cell type
+                    cell.classList.add('revealed');
+                    
+                    if (gameState.bombs.includes(idx)) {
+                        cell.classList.add('mine');
+                        cell.innerHTML = '💣';
+                    } else {
+                        cell.classList.add('safe');
+                        cell.innerHTML = '💎';
+                    }
+                    
+                    // Add animation
+                    cell.style.animation = 'pulse 0.4s ease';
+                    
+                }, delay);
+                
+                delay += 80; // Animation delay
+            });
+        }
+        
+        // Timer
+        function startTimer() {
+            gameState.timer = 0;
+            elements.timer.textContent = '00:00';
+            
+            if (gameState.timerInterval) {
+                clearInterval(gameState.timerInterval);
+            }
+            
+            gameState.timerInterval = setInterval(() => {
+                gameState.timer++;
+                const minutes = Math.floor(gameState.timer / 60).toString().padStart(2, '0');
+                const seconds = (gameState.timer % 60).toString().padStart(2, '0');
+                elements.timer.textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+        
+        // Initialize on load
+        window.onload = function() {
+            initGame();
+            
+            // Signal button handler
+            elements.signalBtn.addEventListener('click', activateSignal);
+            
+            // Restart button handler
+            elements.restartBtn.addEventListener('click', initGame);
+            
+            // Bomb selection handlers
+            document.querySelectorAll('.bomb-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.bomb-option').forEach(opt => {
+                        opt.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                    initGame();
+                });
+            });
+        };
+        
+        // Prevent zooming on mobile
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        });
+    </script>
+</body>
+</html>
